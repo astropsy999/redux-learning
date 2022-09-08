@@ -1,40 +1,62 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { Provider, useSelector, useDispatch } from 'react-redux';
+import { getError } from './store/errors';
 import configureStore from './store/store';
-import { taskCompleted, titleChanged, taskDelete } from './store/task';
+import {
+  titleChanged,
+  taskDelete,
+  completeTask,
+  loadTasks,
+  getTasks,
+  getTasksLoadingStatus,
+  createTask,
+} from './store/task';
 
 const store = configureStore();
 
 const App = (params) => {
-  const [state, setState] = useState(store.getState());
+  const state = useSelector(getTasks());
+  const dispatch = useDispatch();
+  const isLoading = useSelector(getTasksLoadingStatus());
+  const error = useSelector(getError());
 
   useEffect(() => {
-    store.subscribe(() => {
-      setState(store.getState());
-    });
-  }, []);
+    dispatch(loadTasks());
+  }, [dispatch]);
 
-  const completeTask = (taskId) => {
-    store.dispatch(taskCompleted(taskId));
+  const addNewTask = () => {
+    dispatch(createTask({ userId: 1, title: 'Нова задача', completed: false }));
   };
 
   const changeTitle = (taskId) => {
-    store.dispatch(titleChanged(taskId));
+    dispatch(titleChanged(taskId));
   };
   const changeDelete = (taskId) => {
-    store.dispatch(taskDelete(taskId));
+    dispatch(taskDelete(taskId));
   };
+
+  if (isLoading) {
+    return <h1>Завантаження...</h1>;
+  }
+  if (error) {
+    return <p>{error}</p>;
+  }
 
   return (
     <>
       <h1>App</h1>
+      <div>
+        <button onClick={addNewTask}>Додати задачу</button>
+      </div>
       <ul>
         {state.map((el) => (
           <li key={el.id}>
-            <h3>{el.title}</h3>
-            <p>{el.description}</p>
+            <p>{el.title}</p>
             <p> {`Зроблено:${el.completed}`}</p>
-            <button onClick={() => completeTask(el.id)}>Complete</button>
+            <button onClick={() => dispatch(completeTask(el.id))}>
+              Завершено
+            </button>
             <button onClick={() => changeTitle(el.id)}>Змінити назву</button>
             <button onClick={() => changeDelete(el.id)}>Видалити</button>
             <hr />
@@ -47,7 +69,9 @@ const App = (params) => {
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Provider store={store}>
+      <App />
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root'),
 );
